@@ -24,7 +24,7 @@ logger = get_logger(__name__)
 ## Should add the ultrasonic sensor as a part
 ## The ultrasonic sensor code should be in its won class
 ## maybe have the thread return a value rather than have it set the shouldStop variable
-
+## make n_times an argument to Vehicle() and a CLI argument to manage.py
 class Vehicle:
     def __init__(self, mem=None):
         if not mem:
@@ -36,6 +36,8 @@ class Vehicle:
         self.shouldStop = False
         self.MIN_DISTANCE_TO_OBJECT = 30.48
         self.ultrasonic_sensor_wait = 0.25
+        self.n = 10
+	self.n_times_wait_reduction = 0.15
 
     def add(self, part, inputs=[], outputs=[],
             threaded=False, run_condition=None):
@@ -110,7 +112,7 @@ class Vehicle:
                     self.update_parts()
                 else:
                     print("OBJECT IN THE WAY")
-                    self.check_distance_n_times(6)
+                    self.check_distance_n_times(self.n)
 
                 # stop drive loop if loop_count exceeds max_loopcount
                 if max_loop_count and loop_count > max_loop_count:
@@ -195,15 +197,17 @@ class Vehicle:
     # check if the blocking object is not there
     ## it has to verify that the object is not there for num_checks sequentially
     
-    ## This will also have the effect of wating a minumum of num_checks * self.ultrasonic_sensor_wait
+    ## This will also have the effect of wating a minumum of num_checks * self.ultrasonic_sensor_wait - self.n_time_reduction
+    ## This method and self.get_distance should either combine into one or have a third method that handles there similaritys
     def check_distance_n_times(self, num_checks):
         verify = 0
         while verify < num_checks:
-            # set Trigger to HIGH
+           print(verify) 
+           # set Trigger to HIGH
             GPIO.output(GPIO_TRIGGER, True)
 
             # set Trigger after 0.01ms to LOW
-            time.sleep(self.ultrasonic_sensor_wait)
+            time.sleep(max(self.ultrasonic_sensor_wait - self.n_times_wait_reduction  0.0))
             GPIO.output(GPIO_TRIGGER, False)
 
             StartTime = time.time()
