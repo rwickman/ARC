@@ -12,8 +12,8 @@ from .memory import Memory
 from .log import get_logger
 import RPi.GPIO as GPIO
 import time
-GPIO_TRIGGER = 27
-GPIO_ECHO = 17
+GPIO_TRIGGER = 23
+GPIO_ECHO = 24
 GPIO.setmode(GPIO.BCM)
 
 GPIO.setup(GPIO_TRIGGER, GPIO.OUT)
@@ -35,7 +35,8 @@ class Vehicle:
         self.threads = []
         self.shouldStop = False
         self.MIN_DISTANCE_TO_OBJECT = 30.48
-    
+        self.ultrasonic_sensor_wait = 0.25
+
     def add(self, part, inputs=[], outputs=[],
             threaded=False, run_condition=None):
         """
@@ -105,10 +106,12 @@ class Vehicle:
                 start_time = time.time()
                 loop_count += 1
 
-                if not self.shouldStop():
+                if not self.shouldStop:
                     self.update_parts()
                 else:
                     print("OBJECT IN THE WAY")
+                    self.check_distance_n_times(6)
+
                 # stop drive loop if loop_count exceeds max_loopcount
                 if max_loop_count and loop_count > max_loop_count:
                     self.on = False
@@ -157,32 +160,71 @@ class Vehicle:
                 logger.debug(e)
 
     def get_distance(self):
-        # set Trigger to HIGH
-        GPIO.output(GPIO_TRIGGER, True)
+        while self.on:
+            # set Trigger to HIGH
+            GPIO.output(GPIO_TRIGGER, True)
 
-        # set Trigger after 0.01ms to LOW
-        time.sleep(0.00001)
-        GPIO.output(GPIO_TRIGGER, False)
+            # set Trigger after 0.01ms to LOW
+            time.sleep(self.ultrasonic_sensor_wait)
+            if not self.shouldStop:
+                GPIO.output(GPIO_TRIGGER, False)
 
-        StartTime = time.time()
-        StopTime = time.time()
+                StartTime = time.time()
+                StopTime = time.time()
 
-        # save StartTime
-        if GPIO.input(GPIO_ECHO) == 0:
+                # save StartTime
+                while GPIO.input(GPIO_ECHO) == 0:
+                    StartTime = time.time()
+
+                # save time of arrival
+                while GPIO.input(GPIO_ECHO) == 1:
+                    StopTime = time.time()
+
+                # time difference between start and arrival
+                TimeElapsed = StopTime - StartTime
+                # multiply with the sonic speed (34300 cm/s)
+                # and divide by 2, because there and back
+                distance = (TimeElapsed * 34300) / 2
+                print("DISTANCE: ", distance)
+                if distance < self.MIN_DISTANCE_TO_OBJECT:
+                    self.shouldStop = True
+                    #time.sleep(self.stop_wait_time_end)
+                else:
+                    self.shouldStop = False
+#return distance
+    # check if the blocking object is not there
+    ## it has to verify that the object is not there for num_checks sequentially
+    
+    ## This will also have the effect of wating a minumum of num_checks * self.ultrasonic_sensor_wait
+    def check_distance_n_times(self, num_checks):
+        verify = 0
+        while verify < num_checks:
+            # set Trigger to HIGH
+            GPIO.output(GPIO_TRIGGER, True)
+
+            # set Trigger after 0.01ms to LOW
+            time.sleep(self.ultrasonic_sensor_wait)
+            GPIO.output(GPIO_TRIGGER, False)
+
             StartTime = time.time()
-
-        # save time of arrival
-        if GPIO.input(GPIO_ECHO) == 1:
             StopTime = time.time()
 
-        # time difference between start and arrival
-        TimeElapsed = StopTime - StartTime
-        # multiply with the sonic speed (34300 cm/s)
-        # and divide by 2, because there and back
-        distance = (TimeElapsed * 34300) / 2
+            # save StartTime
+            while GPIO.input(GPIO_ECHO) == 0:
+                StartTime = time.time()
 
-        if distance > self.MIN_DISTANCE_TO_OBJECT:
-            self.shouldStop = True
-        else:
-            self.shouldStop = False
-        #return distance
+            # save time of arrival
+            while GPIO.input(GPIO_ECHO) == 1:
+                StopTime = time.time()
+
+            # time difference between start and arrival
+            TimeElapsed = StopTime - StartTime
+            # multiply with the sonic speed (34300 cm/s)
+            # and divide by 2, because there and back
+            distance = (TimeElapsed * 34300) / 2
+            print("DISTANCE: ", distance)
+            if distance < self.MIN_DISTANCE_TO_OBJECT:
+                verify = 0
+            else:
+                verify += 1
+        self.shouldStop = False
