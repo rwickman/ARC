@@ -20,7 +20,10 @@ GPIO.setup(GPIO_TRIGGER, GPIO.OUT)
 GPIO.setup(GPIO_ECHO, GPIO.IN)
 
 logger = get_logger(__name__)
-
+# TODO
+## Should add the ultrasonic sensor as a part
+## The ultrasonic sensor code should be in its won class
+## maybe have the thread return a value rather than have it set the shouldStop variable
 
 class Vehicle:
     def __init__(self, mem=None):
@@ -30,7 +33,9 @@ class Vehicle:
         self.parts = []
         self.on = True
         self.threads = []
-
+        self.shouldStop = False
+        self.MIN_DISTANCE_TO_OBJECT = 30.48
+    
     def add(self, part, inputs=[], outputs=[],
             threaded=False, run_condition=None):
         """
@@ -92,17 +97,18 @@ class Vehicle:
             # wait until the parts warm up.
             logger.info('Starting vehicle...')
             time.sleep(1)
-
+            get_distance_thread = Thread(target=self.get_distance)
+            get_distance_thread.start()
             loop_count = 0
             #distance = 0
             while self.on:
                 start_time = time.time()
                 loop_count += 1
-                #distance += 1
-                distance = self.get_distance()
 
-                self.update_parts()
-
+                if not self.shouldStop():
+                    self.update_parts()
+                else:
+                    print("OBJECT IN THE WAY")
                 # stop drive loop if loop_count exceeds max_loopcount
                 if max_loop_count and loop_count > max_loop_count:
                     self.on = False
@@ -116,7 +122,7 @@ class Vehicle:
         finally:
             self.stop()
 
-    def update_parts(self,distanceNum):
+    def update_parts(self):
         """
         loop over all parts
         """
@@ -129,23 +135,18 @@ class Vehicle:
                 # print('run_condition', entry['part'], entry.get('run_condition'), run)
 
             if run:
-                if distanceNum < 1000:
-                    p = entry['part']
-                    # get inputs from memory
-                    inputs = self.mem.get(entry['inputs'])
+                p = entry['part']
+                # get inputs from memory
+                inputs = self.mem.get(entry['inputs'])
 
-                    # run the part
-                    if entry.get('thread'):
-                        outputs = p.run_threaded(*inputs)
-                    else:
-                        outputs = p.run(*inputs)
-
-                    # save the output to memory
-                    if outputs is not None:
-                        self.mem.put(entry['outputs'], outputs)
+                # run the part
+                if entry.get('thread'):
+                    outputs = p.run_threaded(*inputs)
                 else:
-                    print("There is an object within 500 paces of the car")
-                    self.on = False
+                    outputs = p.run(*inputs)
+                # save the output to memory
+                if outputs is not None:
+                    self.mem.put(entry['outputs'], outputs)
 
     def stop(self):
         logger.info('Shutting down vehicle and its parts...')
@@ -154,6 +155,7 @@ class Vehicle:
                 entry['part'].shutdown()
             except Exception as e:
                 logger.debug(e)
+
     def get_distance(self):
         # set Trigger to HIGH
         GPIO.output(GPIO_TRIGGER, True)
@@ -178,5 +180,9 @@ class Vehicle:
         # multiply with the sonic speed (34300 cm/s)
         # and divide by 2, because there and back
         distance = (TimeElapsed * 34300) / 2
-        print(distance)
-        return distance
+
+        if distance > self.MIN_DISTANCE_TO_OBJECT:
+            self.shouldStop = True
+        else:
+            self.shouldStop = False
+        #return distance
