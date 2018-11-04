@@ -35,12 +35,12 @@ class Classifier:
         
         self.category_index = label_map_util.create_category_index(self.categories)
         self.predicted_class_threshold = predicted_class_threshold # The threshold it has to exceed to be added to predicted classes
-	self.sess = None
-	self.detection_graph = None
+        self.sess = None
+        self.detection_graph = None
         self.worker()
 
- 
-   def detect_objects(self,image_np):
+
+    def detect_objects(self,image_np):
         # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
         image_np_expanded = np.expand_dims(image_np, axis=0)
         image_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')
@@ -97,7 +97,7 @@ class Classifier:
     
     def predict(self, frame):
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        return detect_objects(frame_rgb, self.sess, self.detection_graph))
+        return detect_objects(frame_rgb, self.sess, self.detection_graph)
 
 '''
 if __name__ == '__main__':
