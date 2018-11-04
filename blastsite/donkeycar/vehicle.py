@@ -25,6 +25,8 @@ logger = get_logger(__name__)
 ## The ultrasonic sensor code should be in its won class
 ## maybe have the thread return a value rather than have it set the shouldStop variable
 ## make n_times an argument to Vehicle() and a CLI argument to manage.py
+## Look into how GPIO actually works
+
 class Vehicle:
     def __init__(self, mem=None):
         if not mem:
@@ -36,8 +38,8 @@ class Vehicle:
         self.shouldStop = False
         self.MIN_DISTANCE_TO_OBJECT = 30.48
         self.ultrasonic_sensor_wait = 0.25
-        self.n = 10
-	self.n_times_wait_reduction = 0.15
+        self.n = 20
+        self.n_times_wait_reduction = 0.15
 
     def add(self, part, inputs=[], outputs=[],
             threaded=False, run_condition=None):
@@ -107,7 +109,6 @@ class Vehicle:
             while self.on:
                 start_time = time.time()
                 loop_count += 1
-
                 if not self.shouldStop:
                     self.update_parts()
                 else:
@@ -164,11 +165,13 @@ class Vehicle:
     def get_distance(self):
         while self.on:
             # set Trigger to HIGH
-            GPIO.output(GPIO_TRIGGER, True)
-
+            
             # set Trigger after 0.01ms to LOW
             time.sleep(self.ultrasonic_sensor_wait)
+            
             if not self.shouldStop:
+                GPIO.output(GPIO_TRIGGER, True)
+                time.sleep(0.001)
                 GPIO.output(GPIO_TRIGGER, False)
 
                 StartTime = time.time()
@@ -176,11 +179,15 @@ class Vehicle:
 
                 # save StartTime
                 while GPIO.input(GPIO_ECHO) == 0:
-                    StartTime = time.time()
+                    pass
+                
+                StartTime = time.time()
 
                 # save time of arrival
                 while GPIO.input(GPIO_ECHO) == 1:
-                    StopTime = time.time()
+                    pass
+                    
+                StopTime = time.time()
 
                 # time difference between start and arrival
                 TimeElapsed = StopTime - StartTime
@@ -191,23 +198,22 @@ class Vehicle:
                 if distance < self.MIN_DISTANCE_TO_OBJECT:
                     self.shouldStop = True
                     #time.sleep(self.stop_wait_time_end)
-                else:
-                    self.shouldStop = False
+        
 #return distance
     # check if the blocking object is not there
     ## it has to verify that the object is not there for num_checks sequentially
     
-    ## This will also have the effect of wating a minumum of num_checks * self.ultrasonic_sensor_wait - self.n_time_reduction
+    ## This will also have the effect of wating a minumum of num_checks * (self.ultrasonic_sensor_wait - self.n_time_reductio)n
     ## This method and self.get_distance should either combine into one or have a third method that handles there similaritys
     def check_distance_n_times(self, num_checks):
         verify = 0
         while verify < num_checks:
-           print(verify) 
-           # set Trigger to HIGH
+            print("VERIFY: ", verify) 
+            # set Trigger to HIGH
             GPIO.output(GPIO_TRIGGER, True)
 
             # set Trigger after 0.01ms to LOW
-            time.sleep(max(self.ultrasonic_sensor_wait - self.n_times_wait_reduction  0.0))
+            time.sleep(max(self.ultrasonic_sensor_wait - self.n_times_wait_reduction,  0.0))
             GPIO.output(GPIO_TRIGGER, False)
 
             StartTime = time.time()
@@ -226,7 +232,7 @@ class Vehicle:
             # multiply with the sonic speed (34300 cm/s)
             # and divide by 2, because there and back
             distance = (TimeElapsed * 34300) / 2
-            print("DISTANCE: ", distance)
+            print("DISTANCE(n_times): ", distance)
             if distance < self.MIN_DISTANCE_TO_OBJECT:
                 verify = 0
             else:
