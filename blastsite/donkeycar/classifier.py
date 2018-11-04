@@ -11,7 +11,7 @@ from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
 
 class Classifier:
-    def __init__(self, model='soda_modelv5', predicted_class_threshold=0.6):
+    def __init__(self, model='sprite_model', predicted_class_threshold=0.9):
 
         CWD_PATH = os.getcwd()
         
@@ -20,13 +20,13 @@ class Classifier:
         # ./desktop/object_detector_app/object_detection_ssd_mobilenet_v1_coco_11_06_2017/frozen_inference_graph.pb
         #MODEL_NAME = 'ssd_mobilenet_v1_coco_11_06_2017'
         self.MODEL_NAME = model
-        self.PATH_TO_CKPT = os.path.join(CWD_PATH, 'object_detection', self.MODEL_NAME, 'frozen_inference_graph.pb')
+        self.PATH_TO_CKPT = os.path.join(CWD_PATH, self.MODEL_NAME, 'frozen_inference_graph.pb')
         
         # List of the strings that is used to add correct label for each box.
         # The path for the label map is:
-        self.PATH_TO_LABELS = os.path.join(CWD_PATH, 'object_detection', 'data', 'soda_label_map.pbtxt')
+        self.PATH_TO_LABELS = os.path.join(CWD_PATH, 'sprite_label_map.pbtxt')
         
-        self.NUM_CLASSES = 4
+        self.NUM_CLASSES = 1
         
         # Loading label map
         self.label_map = label_map_util.load_labelmap(self.PATH_TO_LABELS)
