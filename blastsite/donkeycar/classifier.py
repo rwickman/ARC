@@ -11,20 +11,20 @@ from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
 
 class Classifier:
-    def __init__(self, model='sprite_model', predicted_class_threshold=0.9):
+    def __init__(self, model='sprite_model', predicted_class_threshold=0.90):
 
-        CWD_PATH = os.getcwd()
+        #CWD_PATH = os.getcwd()
         
         # Path to frozen detection graph. This is the actual model that is used for the object detection.
         # The path to frozen_inference_graph.pb is:
         # ./desktop/object_detector_app/object_detection_ssd_mobilenet_v1_coco_11_06_2017/frozen_inference_graph.pb
         #MODEL_NAME = 'ssd_mobilenet_v1_coco_11_06_2017'
         self.MODEL_NAME = model
-        self.PATH_TO_CKPT = os.path.join(CWD_PATH, self.MODEL_NAME, 'frozen_inference_graph.pb')
+        self.PATH_TO_CKPT = os.path.join('/home/pi/ARC/blastsite/donkeycar', self.MODEL_NAME, 'frozen_inference_graph.pb')
         
         # List of the strings that is used to add correct label for each box.
         # The path for the label map is:
-        self.PATH_TO_LABELS = os.path.join(CWD_PATH, 'sprite_label_map.pbtxt')
+        self.PATH_TO_LABELS = '/home/pi/ARC/blastsite/donkeycar/sprite_label_map.pbtxt'
         
         self.NUM_CLASSES = 1
         
@@ -97,7 +97,7 @@ class Classifier:
     
     def predict(self, frame):
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        return detect_objects(frame_rgb, self.sess, self.detection_graph)
+        return self.detect_objects(frame_rgb)
 
 '''
 if __name__ == '__main__':

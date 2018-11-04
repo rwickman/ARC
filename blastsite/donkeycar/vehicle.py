@@ -1,19 +1,10 @@
-#
-/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Jun 25 10:44:24 2017
-
-@author: wroscoe
-"""
-
 import time
 from threading import Thread
 from .memory import Memory
 from .log import get_logger
 import RPi.GPIO as GPIO
 import time
-from .classifer import Classifer #Classifer.py will need to be included in the same directory as vehicle.py 
+from .classifier import Classifier #Classifer.py will need to be included in the same directory as vehicle.py 
 
 GPIO_TRIGGER = 23
 GPIO_ECHO = 24
@@ -35,23 +26,24 @@ class Vehicle:
         if not mem:
             mem = Memory()
         self.mem = mem
-        self.parts = []
+        self.parts = [] # Turn this into an array where the name is the key
         self.on = True
         self.threads = []
         self.shouldStop = False
-        self.MIN_DISTANCE_TO_OBJECT = 30.48
+        self.MIN_DISTANCE_TO_OBJECT = 60.96
         self.ultrasonic_sensor_wait = 0.25
         self.n = 10
-	self.n_times_wait_reduction = 0.15
-	self.classifer = Classifer()
-        self.seesCokeCan = False
+        self.n_times_wait_reduction = 0.15
+        self.classifier = Classifier()
+        self.acc = None
+
     def add(self, part, inputs=[], outputs=[],
             threaded=False, run_condition=None, name=None):
         """
         Method to add a part to the vehicle drive loop.
 
         Parameters
-        ----------
+        i----------
             inputs : list
                 Channel names to get from memory.
             outputs : list
@@ -70,6 +62,8 @@ class Vehicle:
         entry['outputs'] = outputs
         entry['run_condition'] = run_condition
         entry['name'] = name
+        if name == "PWMThrottle":
+            self.acc = p
         if threaded:
             t = Thread(target=part.update, args=())
             t.daemon = True
@@ -101,14 +95,14 @@ class Vehicle:
             for entry in self.parts:
                 if entry.get('thread'):
                     # start the update thread
-                    try.get('thread').start()
+                    entry.get('thread').start()
 
             # wait until the parts warm up.
             logger.info('Starting vehicle...')
             time.sleep(1)
             get_distance_thread = Thread(target=self.get_distance)
             get_distance_thread.start()
-            classifer_thread = Thread(target=classifer.predict)
+            classifier_thread = Thread(target=self.classifier.predict)
             loop_count = 0
             #distance = 0
             while self.on:
@@ -117,6 +111,7 @@ class Vehicle:
                 if not self.shouldStop:
                     self.update_parts()
                 else:
+                    self.acc.run(0)
                     print("OBJECT IN THE WAY")
                     self.check_distance_n_times(self.n)
 
@@ -137,6 +132,7 @@ class Vehicle:
         """
         loop over all parts
         """
+        print("updating parts")
         for entry in self.parts:
             # don't run if there is a run condition that is False
             run = True
@@ -153,10 +149,8 @@ class Vehicle:
                 # run the part
                 if entry.get('thread'):
                     outputs = p.run_threaded(*inputs)
-                    print(type(outputs))            
                     if entry['name'] == "cam":
-                        print("CAM OUTPUTS: ", outputs)
-                        predicted = self.classifer.predict(outputs)
+                        predicted = self.classifier.predict(outputs)
                         print("PREDICTED: ", predicted)
                         if predicted:
                             self.shouldStop = True
@@ -206,7 +200,7 @@ class Vehicle:
                 # multiply with the sonic speed (34300 cm/s)
                 # and divide by 2, because there and back
                 distance = (TimeElapsed * 34300) / 2
-                `print("DISTANCE: ", distance)
+                print("DISTANCE: ", distance)
                 if distance < self.MIN_DISTANCE_TO_OBJECT:
                     self.shouldStop = True
                     #time.sleep(self.stop_wait_time_end)
