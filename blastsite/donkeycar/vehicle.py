@@ -12,6 +12,8 @@ from .memory import Memory
 from .log import get_logger
 import RPi.GPIO as GPIO
 import time
+from .classifer import Classifer #Classifer.py will need to be included in the same directory as vehicle.py 
+
 GPIO_TRIGGER = 23
 GPIO_ECHO = 24
 GPIO.setmode(GPIO.BCM)
@@ -38,9 +40,10 @@ class Vehicle:
         self.ultrasonic_sensor_wait = 0.25
         self.n = 10
 	self.n_times_wait_reduction = 0.15
-
+	self.classifer = Classifer(
+)
     def add(self, part, inputs=[], outputs=[],
-            threaded=False, run_condition=None):
+            threaded=False, run_condition=None, name=None):
         """
         Method to add a part to the vehicle drive loop.
 
@@ -63,7 +66,7 @@ class Vehicle:
         entry['inputs'] = inputs
         entry['outputs'] = outputs
         entry['run_condition'] = run_condition
-
+        entry['name'] = name
         if threaded:
             t = Thread(target=part.update, args=())
             t.daemon = True
@@ -78,7 +81,7 @@ class Vehicle:
         threads for the threaded parts then starts an infinit loop
         that runs each part and updates the memory.
 
-        Parameters
+        Parameter1s
         ----------
 
         rate_hz : int
@@ -95,13 +98,14 @@ class Vehicle:
             for entry in self.parts:
                 if entry.get('thread'):
                     # start the update thread
-                    entry.get('thread').start()
+                    try.get('thread').start()
 
             # wait until the parts warm up.
             logger.info('Starting vehicle...')
             time.sleep(1)
             get_distance_thread = Thread(target=self.get_distance)
             get_distance_thread.start()
+            classifer_thread = Thread(target=classifer.predict)
             loop_count = 0
             #distance = 0
             while self.on:
@@ -147,6 +151,11 @@ class Vehicle:
                 # run the part
                 if entry.get('thread'):
                     outputs = p.run_threaded(*inputs)
+                    '''
+                    if entry['name'] == "cam":
+                        predicted = self.classifer.predict(outputs.array)
+                        print("PREDICTED: ", predicted)
+                   '''
                 else:
                     outputs = p.run(*inputs)
                 # save the output to memory
