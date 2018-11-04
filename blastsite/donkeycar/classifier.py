@@ -11,7 +11,7 @@ from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
 
 class Classifier:
-    def __init__(self, model='soda_modelv5'):
+    def __init__(self, model='soda_modelv5', predicted_class_threshold=0.6):
 
         CWD_PATH = os.getcwd()
         
@@ -34,9 +34,11 @@ class Classifier:
                                                                     use_display_name=True)
         
         self.category_index = label_map_util.create_category_index(self.categories)
+        self.predicted_class_threshold = predicted_class_threshold # The threshold it has to exceed to be added to predicted classes
 	self.sess = None
 	self.detection_graph = None
         self.worker()
+
  
    def detect_objects(self,image_np):
         # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
@@ -72,7 +74,7 @@ class Classifier:
         detected_classes = [] # Stores classes that exceed a particular threshould
         for index,value in enumerate(classes[0]):
             class_name = self.category_index[classes[0][0]]['name']
-            if scores[0,index] > 0.60:
+            if scores[0,index] > self.predicted_class_threshold:
                 detected_classes.append(class_name)
         return detected_classes
     

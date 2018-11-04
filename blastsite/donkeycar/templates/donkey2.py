@@ -44,7 +44,7 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
     V.add(clock, outputs='timestamp')
 
     cam = PiCamera(resolution=cfg.CAMERA_RESOLUTION)
-    V.add(cam, outputs=['cam/image_array'], threaded=True)
+    V.add(cam, outputs=['cam/image_array'], threaded=True, name="cam")
 
     if use_joystick or cfg.USE_JOYSTICK_AS_DEFAULT:
         ctr = JoystickController(max_throttle=cfg.JOYSTICK_MAX_THROTTLE,

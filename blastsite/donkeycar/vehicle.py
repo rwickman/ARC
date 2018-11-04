@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+#
+/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Sun Jun 25 10:44:24 2017
@@ -43,7 +44,7 @@ class Vehicle:
         self.n = 10
 	self.n_times_wait_reduction = 0.15
 	self.classifer = Classifer()
-
+        self.seesCokeCan = False
     def add(self, part, inputs=[], outputs=[],
             threaded=False, run_condition=None, name=None):
         """
@@ -152,11 +153,13 @@ class Vehicle:
                 # run the part
                 if entry.get('thread'):
                     outputs = p.run_threaded(*inputs)
-                    '''
+                    print(type(outputs))            
                     if entry['name'] == "cam":
-                        predicted = self.classifer.predict(outputs.array)
+                        print("CAM OUTPUTS: ", outputs)
+                        predicted = self.classifer.predict(outputs)
                         print("PREDICTED: ", predicted)
-                   '''
+                        if predicted:
+                            self.shouldStop = True
                 else:
                     outputs = p.run(*inputs)
                 # save the output to memory
@@ -203,7 +206,7 @@ class Vehicle:
                 # multiply with the sonic speed (34300 cm/s)
                 # and divide by 2, because there and back
                 distance = (TimeElapsed * 34300) / 2
-                print("DISTANCE: ", distance)
+                `print("DISTANCE: ", distance)
                 if distance < self.MIN_DISTANCE_TO_OBJECT:
                     self.shouldStop = True
                     #time.sleep(self.stop_wait_time_end)
@@ -246,4 +249,4 @@ class Vehicle:
                 verify = 0
             else:
                 verify += 1
-        self.shouldStop = False
+        self.shouldStop = False 
