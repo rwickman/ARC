@@ -30,9 +30,9 @@ class Vehicle:
         self.on = True
         self.threads = []
         self.shouldStop = False
-        self.MIN_DISTANCE_TO_OBJECT = 60.96
+        self.MIN_DISTANCE_TO_OBJECT = 50
         self.ultrasonic_sensor_wait = 0.25
-        self.n = 10
+        self.n = 13
         self.n_times_wait_reduction = 0.15
         self.classifier = Classifier()
         self.acc = None
