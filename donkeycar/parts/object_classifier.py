@@ -5,12 +5,13 @@ import argparse
 import multiprocessing
 import numpy as np
 import tensorflow as tf
+import time
 
 from multiprocessing import Queue, Pool
 from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
 
-class Classifier:
+class ObjectClassifier:
     def __init__(self, model='sprite_model', predicted_class_threshold=0.90):
 
         #CWD_PATH = os.getcwd()
@@ -20,11 +21,13 @@ class Classifier:
         # ./desktop/object_detector_app/object_detection_ssd_mobilenet_v1_coco_11_06_2017/frozen_inference_graph.pb
         #MODEL_NAME = 'ssd_mobilenet_v1_coco_11_06_2017'
         self.MODEL_NAME = model
-        self.PATH_TO_CKPT = os.path.join('/home/pi/ARC/blastsite/donkeycar', self.MODEL_NAME, 'frozen_inference_graph.pb')
+
+        # These paths should dynamic
+        self.PATH_TO_CKPT = os.path.join('/home/pi/ARC/donkeycar', self.MODEL_NAME, 'frozen_inference_graph.pb')
         
         # List of the strings that is used to add correct label for each box.
         # The path for the label map is:
-        self.PATH_TO_LABELS = '/home/pi/ARC/blastsite/donkeycar/sprite_label_map.pbtxt'
+        self.PATH_TO_LABELS = '/home/pi/ARC/donkeycar/sprite_label_map.pbtxt'
         
         self.NUM_CLASSES = 1
         
@@ -32,13 +35,21 @@ class Classifier:
         self.label_map = label_map_util.load_labelmap(self.PATH_TO_LABELS)
         self.categories = label_map_util.convert_label_map_to_categories(self.label_map, max_num_classes=self.NUM_CLASSES,
                                                                     use_display_name=True)
-        
         self.category_index = label_map_util.create_category_index(self.categories)
         self.predicted_class_threshold = predicted_class_threshold # The threshold it has to exceed to be added to predicted classes
         self.sess = None
         self.detection_graph = None
         self.worker()
+        self.detected_classes = []
+        self.frame = None
+        self.isNewFrame = False 
+        self.on = True
 
+
+    def run_threaded(self, frame):
+        self.frame = frame
+        self.isNewFrame = True
+        return self.detected_classes
 
     def detect_objects(self,image_np):
         # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
@@ -60,6 +71,7 @@ class Classifier:
             feed_dict={image_tensor: image_np_expanded})
     
         # Visualization of the results of a detection.
+        """
         vis_util.visualize_boxes_and_labels_on_image_array(
             image_np,
             np.squeeze(boxes),
@@ -68,10 +80,10 @@ class Classifier:
             self.category_index,
             use_normalized_coordinates=True,
             line_thickness=8)
-        
+        """
         has_already_printed_sthg = False
     
-        detected_classes = [] # Stores classes that exceed a particular threshould
+        detected_classes = [] # Stores classes that exceed a particular threshold
         for index,value in enumerate(classes[0]):
             class_name = self.category_index[classes[0][0]]['name']
             if scores[0,index] > self.predicted_class_threshold:
@@ -95,64 +107,11 @@ class Classifier:
     
     
     
-    def predict(self, frame):
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        return self.detect_objects(frame_rgb)
-
-'''
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-src', '--source', dest='video_source', type=int,
-                        default=0, help='Device index of the camera.')
-    parser.add_argument('-wd', '--width', dest='width', type=int,
-                        default=1000, help='Width of the frames in the video stream.')
-    parser.add_argument('-ht', '--height', dest='height', type=int,
-                        default=500, help='Height of the frames in the videostream.')
-    parser.add_argument('-num-w', '--num-workers', dest='num_workers', type=int,
-                        default=2, help='Number of workers.')
-    parser.add_argument('-q-size', '--queue-size', dest='queue_size', type=int,
-                        default=5, help='Size of the queue.')
-    args = parser.parse_args()
-    """
-    parser.add_argument('-wd', '--width', dest='width', type=int,
-                        default=480, help='Width of the frames in the video stream.')
-    parser.add_argument('-ht', '--height', dest='height', type=int,
-                        default=360, help='Height of the frames in the video stream.')
-    """
-
-    logger = multiprocessing.log_to_stderr()
-    logger.setLevel(multiprocessing.SUBDEBUG)
-
-    #input_q = Queue(maxsize=args.queue_size)
-   # output_q = Queue(maxsize=args.queue_size)
-    
-    #pool = Pool(args.num_workers, worker, (input_q, output_q))
-
-    #video_capture = WebcamVideoStream(src=args.video_source,
-    #                                  width=args.width,
-    #                                  height=args.height).start()
-    # fps = FPS().start()
-
-    while True:  # fps._numFrames < 120
-        frame = video_capture.read()
-        input_q.put(frame)
-
-        t = time.time()
-
-        output_rgb = cv2.cvtColor(output_q.get(), cv2.COLOR_RGB2BGR)
-        cv2.imshow('Video', output_rgb)
-        fps.update()
-
-        print('[INFO] elapsed time: {:.2f}'.format(time.time() - t))
-
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    fps.stop()
-    print('[INFO] elapsed time (total): {:.2f}'.format(fps.elapsed()))
-    print('[INFO] approx. FPS: {:.2f}'.format(fps.fps()))
-
-    pool.terminate()
-    #video_capture.stop()
-    cv2.destroyAllWindows()'''
+    def update(self):
+        while self.on:
+            time.sleep(0.01) # random delay that should in the future be based on the framerate
+            if self.isNewFrame:
+                frame_rgb = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
+                self.isNewFrame = False
+                self.detected_classes = self.detect_objects(frame_rgb)
 

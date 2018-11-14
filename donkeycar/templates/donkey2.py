@@ -25,6 +25,8 @@ from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle
 from donkeycar.parts.datastore import TubGroup, TubWriter
 from donkeycar.parts.controller import LocalWebController, JoystickController
 from donkeycar.parts.clock import Timestamp
+from donkeycar.parts.ultrasonic import Ultrasonic
+from donkeycar.parts.object_classifier import ObjectClassifier
 
 
 def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
@@ -45,6 +47,12 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
 
     cam = PiCamera(resolution=cfg.CAMERA_RESOLUTION)
     V.add(cam, outputs=['cam/image_array'], threaded=True, name="cam")
+
+    ultrasonic = Ultrasonic()
+    V.add(ultrasonic, outputs=["distance"], threaded=True, name="ultrasonic")
+
+    object_classifier = ObjectClassifier()
+    V.add(object_classifier, outputs=["object_classifier/classes"], threaded=True, name="object_classifier")
 
     if use_joystick or cfg.USE_JOYSTICK_AS_DEFAULT:
         ctr = JoystickController(max_throttle=cfg.JOYSTICK_MAX_THROTTLE,
@@ -112,7 +120,7 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
                            min_pulse=cfg.THROTTLE_REVERSE_PWM)
 
     V.add(steering, inputs=['angle'])
-    V.add(throttle, inputs=['throttle'])
+    V.add(throttle, inputs=['throttle', 'distance', 'object_classifier/classes'])
 
     # add tub to save data
     inputs = ['cam/image_array', 'user/angle', 'user/throttle', 'user/mode', 'timestamp']

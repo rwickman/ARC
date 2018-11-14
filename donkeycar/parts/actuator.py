@@ -71,14 +71,18 @@ class PWMThrottle:
         self.max_pulse = max_pulse
         self.min_pulse = min_pulse
         self.zero_pulse = zero_pulse
-
+        self.MIN_DISTANCE_TO_OBJECT = 60.96 # What is the distance to an object where the throttle should be set to zero
+        #self.stopping_objects = [""]
         #send zero pulse to calibrate ESC
         self.controller.set_pulse(self.zero_pulse)
         time.sleep(1)
 
 
-    def run(self, throttle):
-        if throttle > 0:
+    def run(self, throttle, distance, detected_objects):
+        if distance < self.MIN_DISTANCE_TO_OBJECT or detected_objects:
+            print("OBJECT IN THE WAY")
+            pulse = 0
+        elif throttle > 0:
             pulse = dk.util.data.map_range(throttle,
                                                     0, self.MAX_THROTTLE,
                                                     self.zero_pulse, self.max_pulse)
