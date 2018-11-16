@@ -52,7 +52,7 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
     V.add(ultrasonic, outputs=["distance"], threaded=True, name="ultrasonic")
 
     object_classifier = ObjectClassifier()
-    V.add(object_classifier, outputs=["object_classifier/classes"], threaded=True, name="object_classifier")
+    V.add(object_classifier, inputs=["cam/image_array"], outputs=["object_classifier/classes"], threaded=True, name="object_classifier")
 
     if use_joystick or cfg.USE_JOYSTICK_AS_DEFAULT:
         ctr = JoystickController(max_throttle=cfg.JOYSTICK_MAX_THROTTLE,

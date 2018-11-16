@@ -12,7 +12,7 @@ from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
 
 class ObjectClassifier:
-    def __init__(self, model='sprite_model', predicted_class_threshold=0.90):
+    def __init__(self, model='coke2_model', predicted_class_threshold=0.90):
 
         #CWD_PATH = os.getcwd()
         
@@ -23,11 +23,11 @@ class ObjectClassifier:
         self.MODEL_NAME = model
 
         # These paths should dynamic
-        self.PATH_TO_CKPT = os.path.join('/home/pi/ARC/donkeycar', self.MODEL_NAME, 'frozen_inference_graph.pb')
+        self.PATH_TO_CKPT = os.path.join('/home/pi/ARC/', self.MODEL_NAME, 'frozen_inference_graph.pb')
         
         # List of the strings that is used to add correct label for each box.
         # The path for the label map is:
-        self.PATH_TO_LABELS = '/home/pi/ARC/donkeycar/sprite_label_map.pbtxt'
+        self.PATH_TO_LABELS = '/home/pi/ARC/coke_label_map.pbtxt'
         
         self.NUM_CLASSES = 1
         
@@ -110,8 +110,11 @@ class ObjectClassifier:
     def update(self):
         while self.on:
             time.sleep(0.01) # random delay that should in the future be based on the framerate
-            if self.isNewFrame:
+            if self.isNewFrame and self.frame is not None:
+                print("About to try to detect image")
                 frame_rgb = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
                 self.isNewFrame = False
                 self.detected_classes = self.detect_objects(frame_rgb)
+                if self.detected_classes:
+                    print("DETECTED CLASSES: ", self.detected_classes)
 

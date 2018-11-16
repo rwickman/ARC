@@ -72,16 +72,28 @@ class PWMThrottle:
         self.min_pulse = min_pulse
         self.zero_pulse = zero_pulse
         self.MIN_DISTANCE_TO_OBJECT = 60.96 # What is the distance to an object where the throttle should be set to zero
+        self.n = 10 #Number of times to check if object is gone
+        self.isCheckingNTimes = False
+        self.timesVerified = 0 #Number of times in a row that distance has been verified to be greater than MIN_DISTANCE_TO_OBJECT
         #self.stopping_objects = [""]
         #send zero pulse to calibrate ESC
         self.controller.set_pulse(self.zero_pulse)
         time.sleep(1)
 
-
     def run(self, throttle, distance, detected_objects):
-        if distance < self.MIN_DISTANCE_TO_OBJECT or detected_objects:
-            print("OBJECT IN THE WAY")
-            pulse = 0
+        pulse = self.zero_pulse
+        if distance < self.MIN_DISTANCE_TO_OBJECT:
+            self.isCheckingNTimes = True
+            print("OBJECT IN THE WAY, DISTANCE: ", distance)
+            self.timesVerified = 0
+        elif "coke" in detected_objects:
+            # Need to further thing this behavior, because if this conditional is called, then self.verified cant increment
+            print("coke detected. Stopping.")
+        elif self.isCheckingNTimes:
+            self.timesVerified += 1
+            print("self.timesVerified: ", self.timesVerified)
+            if self.timesVerified >= self.n:
+                self.isCheckingNTimes = False
         elif throttle > 0:
             pulse = dk.util.data.map_range(throttle,
                                                     0, self.MAX_THROTTLE,
@@ -96,6 +108,10 @@ class PWMThrottle:
     def shutdown(self):
         self.run(0) #stop vehicle
 
+    def check_distance_n_time(self):
+        verify = 0
+        while verify < self.n:
+            print("VERIFY: ", verify)
 
 
 class Adafruit_DCMotor_Hat:
