@@ -15,6 +15,8 @@ from multiprocessing import Queue, Pool
 from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
 
+
+
 CWD_PATH = os.getcwd()
 #MySQL
 db = MySQLdb.connect(user="boellis",password="patdev",host="localhost",db="pat")
@@ -23,7 +25,7 @@ cursor = db.cursor()
 # Path to frozen detection graph. This is the actual model that is used for the object detection.
 # The path to frozen_inference_graph.pb is:
 # ./desktop/object_detector_app/object_detection_ssd_mobilenet_v1_coco_11_06_2017/frozen_inference_graph.pb
-#MODEL_NAME = 'ssd_mobilenet_v1_coco_11_06_2017'
+MODEL_NAME = 'ssd_mobilenet_v1_coco_11_06_2017'
 MODEL_NAME = 'soda_modelv5'
 PATH_TO_CKPT = os.path.join(CWD_PATH, 'object_detection', MODEL_NAME, 'frozen_inference_graph.pb')
 
@@ -68,9 +70,10 @@ def detect_objects(image_np, sess, detection_graph):
         category_index,
         use_normalized_coordinates=True,
         line_thickness=8)
-    
+
     has_already_printed_sthg = False
     #db = MySQLdb.connect(user="boellis",password="patdev",host="localhost",db="pat")
+
     for index,value in enumerate(classes[0]):
         class_name = category_index[classes[0][0]]['name']
         if scores[0,index] > 0.5:
@@ -102,6 +105,7 @@ def detect_objects(image_np, sess, detection_graph):
                 if not has_already_printed_sthg: # Print this only once
                     print('This should print orange_fanta')
                     has_already_printed_sthg = True
+
     return image_np
 
 
